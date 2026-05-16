@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>RAG Simulator</title>
+
+<style>
+    *{
+        margin:0;
+        padding:0;
+        box-sizing:border-box;
+        font-family: Inter, system-ui, sans-serif;
+    }
+
+    body{
+        background:#0f172a;
+        color:#e2e8f0;
+        min-height:100vh;
+        padding:40px;
+    }
+
+    h1{
+        font-size:42px;
+        margin-bottom:10px;
+        font-weight:700;
+    }
+
+    p.subtitle{
+        color:#94a3b8;
+        margin-bottom:40px;
+        line-height:1.6;
+        max-width:900px;
+    }
+
+    .container{
+        display:grid;
+        grid-template-columns: 1.2fr 1fr;
+        gap:24px;
+    }
+
+    .card{
+        background:#111827;
+        border:1px solid rgba(255,255,255,0.08);
+        border-radius:24px;
+        padding:24px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+
+    .card h2{
+        margin-bottom:20px;
+        font-size:20px;
+    }
+
+    textarea{
+        width:100%;
+        height:120px;
+        background:#0b1220;
+        border:1px solid #334155;
+        border-radius:16px;
+        color:white;
+        padding:16px;
+        resize:none;
+        font-size:15px;
+        margin-bottom:16px;
+    }
+
+    button{
+        background:linear-gradient(135deg,#3b82f6,#8b5cf6);
+        border:none;
+        padding:14px 22px;
+        border-radius:14px;
+        color:white;
+        font-weight:600;
+        cursor:pointer;
+        transition:0.25s ease;
+    }
+
+    button:hover{
+        transform:translateY(-2px);
+        opacity:0.95;
+    }
+
+    .documents{
+        display:flex;
+        flex-direction:column;
+        gap:14px;
+        margin-top:18px;
+    }
+
+    .doc{
+        background:#0b1220;
+        border:1px solid #1e293b;
+        padding:18px;
+        border-radius:18px;
+        transition:0.3s ease;
+        position:relative;
+    }
+
+    .doc.active{
+        border:1px solid #3b82f6;
+        background:#172554;
+        transform:scale(1.02);
+    }
+
+    .doc h3{
+        font-size:16px;
+        margin-bottom:10px;
+    }
+
+    .doc p{
+        color:#cbd5e1;
+        line-height:1.5;
+        font-size:14px;
+    }
+
+    .score{
+        position:absolute;
+        top:14px;
+        right:14px;
+        background:#3b82f6;
+        padding:4px 10px;
+        border-radius:999px;
+        font-size:12px;
+    }
+
+    .pipeline{
+        display:flex;
+        flex-direction:column;
+        gap:18px;
+    }
+
+    .step{
+        background:#0b1220;
+        border:1px solid #1e293b;
+        border-radius:18px;
+        padding:18px;
+        opacity:0.4;
+        transition:0.4s ease;
+    }
+
+    .step.active{
+        opacity:1;
+        border-color:#8b5cf6;
+        transform:translateX(6px);
+    }
+
+    .step h3{
+        margin-bottom:8px;
+    }
+
+    .step p{
+        color:#94a3b8;
+        line-height:1.5;
+        font-size:14px;
+    }
+
+    .response{
+        margin-top:24px;
+        background:#020617;
+        border:1px solid #334155;
+        border-radius:18px;
+        padding:20px;
+        line-height:1.7;
+    }
+
+    .highlight{
+        color:#60a5fa;
+        font-weight:600;
+    }
+
+    .small{
+        font-size:13px;
+        color:#94a3b8;
+        margin-top:10px;
+    }
+
+    @media(max-width:900px){
+        .container{
+            grid-template-columns:1fr;
+        }
+    }
+</style>
+</head>
+<body>
+
+<h1>RAG Simulator</h1>
+
+<p class="subtitle">
+Understand how Retrieval-Augmented Generation works step-by-step.
+This simulator demonstrates:
+<br><br>
+1. User Query → 
+2. Retrieval Engine Searches Documents → 
+3. Relevant Chunks Retrieved → 
+4. Context Injected into LLM → 
+5. Final AI Response Generated
+</p>
+
+<div class="container">
+
+    <!-- LEFT -->
+    <div class="card">
+        <h2>Ask a Question</h2>
+
+        <textarea id="queryInput" placeholder="Example: How does sugar affect health?"></textarea>
+
+        <button onclick="runRAG()">
+            Run RAG Simulation
+        </button>
+
+        <div class="response" id="responseBox">
+            Waiting for query...
+        </div>
+
+        <div class="small">
+            This simulation uses keyword-based retrieval to mimic semantic search.
+        </div>
+
+        <div class="documents" id="documentsContainer">
+
+            <div class="doc" data-content="Sugar is commonly stored in kitchen cabinets. It is used in tea coffee and desserts.">
+                <h3>Document 1 — Kitchen Storage</h3>
+                <p>Sugar is commonly stored in kitchen cabinets. It is used in tea, coffee, and desserts.</p>
+            </div>
+
+            <div class="doc" data-content="High sugar consumption may increase risk of diabetes obesity and cardiovascular disease.">
+                <h3>Document 2 — Health Research</h3>
+                <p>High sugar consumption may increase risk of diabetes, obesity, and cardiovascular disease.</p>
+            </div>
+
+            <div class="doc" data-content="Vector databases store embeddings for efficient semantic retrieval in RAG systems.">
+                <h3>Document 3 — Vector Databases</h3>
+                <p>Vector databases store embeddings for efficient semantic retrieval in RAG systems.</p>
+            </div>
+
+            <div class="doc" data-content="RAG improves LLM responses by retrieving relevant external information before generation.">
+                <h3>Document 4 — RAG Explanation</h3>
+                <p>RAG improves LLM responses by retrieving relevant external information before generation.</p>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="card">
+        <h2>RAG Pipeline</h2>
+
+        <div class="pipeline">
+
+            <div class="step" id="step1">
+                <h3>1. User Query</h3>
+                <p>The user asks a question.</p>
+            </div>
+
+            <div class="step" id="step2">
+                <h3>2. Retrieval Engine</h3>
+                <p>The system searches the knowledge base for relevant documents.</p>
+            </div>
+
+            <div class="step" id="step3">
+                <h3>3. Ranking & Retrieval</h3>
+                <p>Relevant chunks are ranked based on similarity.</p>
+            </div>
+
+            <div class="step" id="step4">
+                <h3>4. Context Injection</h3>
+                <p>The retrieved chunks are added into the LLM prompt.</p>
+            </div>
+
+            <div class="step" id="step5">
+                <h3>5. Response Generation</h3>
+                <p>The LLM generates an answer using retrieved context.</p>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+<script>
+
+const docs = document.querySelectorAll(".doc");
+
+function resetUI(){
+    docs.forEach(doc=>{
+        doc.classList.remove("active");
+
+        const oldScore = doc.querySelector(".score");
+        if(oldScore) oldScore.remove();
+    });
+
+    for(let i=1;i<=5;i++){
+        document.getElementById("step"+i).classList.remove("active");
+    }
+}
+
+function sleep(ms){
+    return new Promise(resolve=>setTimeout(resolve,ms));
+}
+
+async function runRAG(){
+
+    resetUI();
+
+    const query = document.getElementById("queryInput").value.toLowerCase();
+
+    if(!query){
+        alert("Please enter a question.");
+        return;
+    }
+
+    const responseBox = document.getElementById("responseBox");
+
+    responseBox.innerHTML = "Running RAG pipeline...";
+
+    // STEP 1
+    document.getElementById("step1").classList.add("active");
+    await sleep(700);
+
+    // STEP 2
+    document.getElementById("step2").classList.add("active");
+    await sleep(700);
+
+    // RETRIEVAL LOGIC
+    const queryWords = query.split(" ");
+
+    let scoredDocs = [];
+
+    docs.forEach(doc => {
+
+        const content = doc.dataset.content.toLowerCase();
+
+        let score = 0;
+
+        queryWords.forEach(word=>{
+            if(content.includes(word)){
+                score++;
+            }
+        });
+
+        scoredDocs.push({
+            element: doc,
+            score,
+            content
+        });
+    });
+
+    scoredDocs.sort((a,b)=>b.score-a.score);
+
+    // STEP 3
+    document.getElementById("step3").classList.add("active");
+
+    scoredDocs.forEach(docObj=>{
+
+        if(docObj.score > 0){
+
+            docObj.element.classList.add("active");
+
+            const badge = document.createElement("div");
+            badge.className = "score";
+            badge.innerText = "Score: " + docObj.score;
+
+            docObj.element.appendChild(badge);
+        }
+    });
+
+    await sleep(1000);
+
+    // STEP 4
+    document.getElementById("step4").classList.add("active");
+
+    const topDocs = scoredDocs.filter(d=>d.score>0).slice(0,2);
+
+    let retrievedContext = topDocs.map(d=>d.content).join(" ");
+
+    await sleep(1000);
+
+    // STEP 5
+    document.getElementById("step5").classList.add("active");
+
+    let finalAnswer = "";
+
+    if(topDocs.length === 0){
+
+        finalAnswer = `
+            <span class="highlight">No relevant documents retrieved.</span>
+            <br><br>
+            The LLM may now hallucinate because it lacks grounded context.
+        `;
+
+    } else {
+
+        finalAnswer = `
+            <span class="highlight">Retrieved Context:</span>
+            <br><br>
+            "${retrievedContext}"
+            <br><br>
+
+            <span class="highlight">Simulated LLM Response:</span>
+            <br><br>
+
+            Based on the retrieved documents, the system generated a response using external grounded information instead of relying purely on training memory.
+            <br><br>
+
+            This demonstrates how RAG reduces hallucination and improves contextual relevance.
+        `;
+    }
+
+    responseBox.innerHTML = finalAnswer;
+}
+
+</script>
+
+</body>
+</html>
